@@ -1,6 +1,7 @@
 from asyncore import poll2
 from ctypes import pointer
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 class Environment(object):
@@ -14,7 +15,7 @@ class Environment(object):
         d_x = self.target[0] - self.origin[0]
         d_y = self.target[1] - self.origin[1]
         points.append(self.origin)
-        for i in range(1,self.num_points-2):
+        for i in range(1,self.num_points-1):
             points.append([self.origin[0]+d_x*i/(self.num_points-1),self.origin[1]+d_y*i/(self.num_points-1)])
 
         points.append(self.target)
@@ -59,7 +60,6 @@ class Optimizer(object):
         c = -d
         b = v1 
         a = a/2
-        # print([a,b,c])
         ts = np.round(np.roots([a,b,c]),3)
         t = np.where(ts > 0)[0]
         return ts[t][0]
@@ -84,18 +84,35 @@ class Optimizer(object):
 
         t_total = np.round(t_total,3)
         return t_total
-    
+
+    def optimize(self,points):
+        y_max = points[:,1].max() 
+        for i in range(points.shape[0]-2,0,-1):
+            points[i,1] = points[i+1,1]
+            t_min = 999999
+            print(points[i-1],points[i],points[i+1])
+            while points[i,1] < points[i-1,1]:
+                t = self.get_t_total(points)
+                if t < t_min:
+                    y_opt = points[i,1]
+                    t_min = t
+                points[i,1] = points[i,1] + self.alpha
+                print(points[i],points[i+1],t)
+            points[i,1] = y_opt
+        # plt.plot(points[:,0],points[:,1])
+        # plt.show()
 if __name__ == "__main__":
     
     origin = [0,10]
     target = [10,0]
-    num_points = 10
+    num_points = 11
 
     env = Environment(origin,target,num_points)
     env.set_points()
     g = 9.8
+    v0 = 0.1
     alpha = 0.1
-    v0 = 0
     opt = Optimizer(g,v0,alpha)
     t_total = opt.get_t_total(env.points)
     print(f'Total time: {t_total}')
+    opt.optimize(env.points)
